@@ -93,7 +93,6 @@ from lib.core.exception import SqlmapInstallationException
 from lib.core.exception import SqlmapMissingDependence
 from lib.core.exception import SqlmapMissingMandatoryOptionException
 from lib.core.exception import SqlmapMissingPrivileges
-from lib.core.exception import SqlmapNoneDataException
 from lib.core.exception import SqlmapSilentQuitException
 from lib.core.exception import SqlmapSyntaxException
 from lib.core.exception import SqlmapSystemException
@@ -983,16 +982,13 @@ def _setHTTPHandlers():
     """
 
     with kb.locks.handlers:
-        if conf.proxyList is not None:
-            if not conf.proxyList:
-                errMsg = "list of usable proxies is exhausted"
-                raise SqlmapNoneDataException(errMsg)
-
+        if conf.proxyList:
             conf.proxy = conf.proxyList[0]
-            conf.proxyList = conf.proxyList[1:]
+            conf.proxyList = conf.proxyList[1:] + conf.proxyList[:1]
 
-            infoMsg = "loading proxy '%s' from a supplied proxy list file" % conf.proxy
-            logger.info(infoMsg)
+            if len(conf.proxyList) > 1:
+                infoMsg = "loading proxy '%s' from a supplied proxy list file" % conf.proxy
+                logger.info(infoMsg)
 
         elif not conf.proxy:
             if conf.hostname in ("localhost", "127.0.0.1") or conf.ignoreProxy:
@@ -2066,11 +2062,11 @@ def _useWizardInterface():
         message = "Please enter full target URL (-u): "
         conf.url = readInput(message, default=None)
 
-    message = "%s data (--data) [Enter for None]: " % ((conf.method if conf.method != HTTPMETHOD.GET else conf.method) or HTTPMETHOD.POST)
+    message = "%s data (--data) [Enter for None]: " % ((conf.method if conf.method != HTTPMETHOD.GET else None) or HTTPMETHOD.POST)
     conf.data = readInput(message, default=None)
 
     if not (any('=' in _ for _ in (conf.url, conf.data)) or '*' in conf.url):
-        warnMsg = "no GET and/or %s parameter(s) found for testing " % ((conf.method if conf.method != HTTPMETHOD.GET else conf.method) or HTTPMETHOD.POST)
+        warnMsg = "no GET and/or %s parameter(s) found for testing " % ((conf.method if conf.method != HTTPMETHOD.GET else None) or HTTPMETHOD.POST)
         warnMsg += "(e.g. GET parameter 'id' in 'http://www.site.com/vuln.php?id=1'). "
         if not conf.crawlDepth and not conf.forms:
             warnMsg += "Will search for forms"

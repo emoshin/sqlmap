@@ -18,7 +18,7 @@ from lib.core.enums import OS
 from thirdparty.six import unichr as _unichr
 
 # sqlmap version (<major>.<minor>.<month>.<monthly commit>)
-VERSION = "1.4.5.28"
+VERSION = "1.4.8.3"
 TYPE = "dev" if VERSION.count('.') > 2 and VERSION.split('.')[-1] != '0' else "stable"
 TYPE_COLORS = {"dev": 33, "stable": 90, "pip": 34}
 VERSION_STRING = "sqlmap/%s#%s" % ('.'.join(VERSION.split('.')[:-1]) if VERSION.count('.') > 2 and VERSION.split('.')[-1] == '0' else VERSION, TYPE)
@@ -69,6 +69,7 @@ REPLACEMENT_MARKER = "__REPLACEMENT_MARK__"
 BOUNDED_INJECTION_MARKER = "__BOUNDED_INJECTION_MARK__"
 SAFE_VARIABLE_MARKER = "__SAFE__"
 SAFE_HEX_MARKER = "__SAFE_HEX__"
+DOLLAR_MARKER = "__DOLLAR__"
 
 RANDOM_INTEGER_MARKER = "[RANDINT]"
 RANDOM_STRING_MARKER = "[RANDSTR]"
@@ -605,7 +606,7 @@ BRUTE_COLUMN_EXISTS_TEMPLATE = "EXISTS(SELECT %s FROM %s)"
 SHELLCODEEXEC_RANDOM_STRING_MARKER = b"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 # Period after last-update to start nagging about the old revision
-LAST_UPDATE_NAGGING_DAYS = 60
+LAST_UPDATE_NAGGING_DAYS = 180
 
 # Minimum non-writing chars (e.g. ['"-:/]) ratio in case of parsed error messages
 MIN_ERROR_PARSING_NON_WRITING_RATIO = 0.05
@@ -816,7 +817,7 @@ XML_RECOGNITION_REGEX = r"(?s)\A\s*<[^>]+>(.+>)?\s*\Z"
 JSON_RECOGNITION_REGEX = r'(?s)\A(\s*\[)*\s*\{.*"[^"]+"\s*:\s*("[^"]*"|\d+|true|false|null|\[).*\}\s*(\]\s*)*\Z'
 
 # Regular expression used for detecting JSON-like POST data
-JSON_LIKE_RECOGNITION_REGEX = r"(?s)\A(\s*\[)*\s*\{.*'[^']+'\s*:\s*('[^']+'|\d+).*\}\s*(\]\s*)*\Z"
+JSON_LIKE_RECOGNITION_REGEX = r"(?s)\A(\s*\[)*\s*\{.*('[^']+'|\"[^\"]+\"|\w+)\s*:\s*('[^']+'|\"[^\"]+\"|\d+).*\}\s*(\]\s*)*\Z"
 
 # Regular expression used for detecting multipart POST data
 MULTIPART_RECOGNITION_REGEX = r"(?i)Content-Disposition:[^;]+;\s*name="

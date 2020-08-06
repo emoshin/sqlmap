@@ -292,6 +292,11 @@ def main():
             logger.critical(errMsg)
             raise SystemExit
 
+        elif "Insufficient system resources" in excMsg:
+            errMsg = "resource exhaustion detected"
+            logger.critical(errMsg)
+            raise SystemExit
+
         elif "OperationalError: disk I/O error" in excMsg:
             errMsg = "I/O error on output device"
             logger.critical(errMsg)
@@ -406,12 +411,12 @@ def main():
             dataToStdout(excMsg)
             raise SystemExit
 
-        elif any(_ in excMsg for _ in ("ImportError", "ModuleNotFoundError", "Can't find file for module")):
+        elif any(_ in excMsg for _ in ("ImportError", "ModuleNotFoundError", "Can't find file for module", "SAXReaderNotAvailable", "source code string cannot contain null bytes", "No module named", "tp_name field")):
             errMsg = "invalid runtime environment ('%s')" % excMsg.split("Error: ")[-1].strip()
             logger.critical(errMsg)
             raise SystemExit
 
-        elif all(_ in excMsg for _ in ("SyntaxError: Non-ASCII character", ".py on line", "but no encoding declared")) or any(_ in excMsg for _ in ("source code string cannot contain null bytes", "No module named")):
+        elif all(_ in excMsg for _ in ("SyntaxError: Non-ASCII character", ".py on line", "but no encoding declared")):
             errMsg = "invalid runtime environment ('%s')" % excMsg.split("Error: ")[-1].strip()
             logger.critical(errMsg)
             raise SystemExit
@@ -464,9 +469,8 @@ def main():
     finally:
         kb.threadContinue = False
 
-        _ = getDaysFromLastUpdate()
-        if _ > LAST_UPDATE_NAGGING_DAYS:
-            warnMsg = "you haven't updated sqlmap for more than %d days!!!" % _
+        if getDaysFromLastUpdate() > LAST_UPDATE_NAGGING_DAYS:
+            warnMsg = "your sqlmap version is outdated"
             logger.warn(warnMsg)
 
         if conf.get("showTime"):

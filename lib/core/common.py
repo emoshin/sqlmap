@@ -58,6 +58,7 @@ from lib.core.convert import getText
 from lib.core.convert import getUnicode
 from lib.core.convert import htmlUnescape
 from lib.core.convert import stdoutEncode
+from lib.core.data import cmdLineOptions
 from lib.core.data import conf
 from lib.core.data import kb
 from lib.core.data import logger
@@ -116,6 +117,7 @@ from lib.core.settings import DEFAULT_COOKIE_DELIMITER
 from lib.core.settings import DEFAULT_GET_POST_DELIMITER
 from lib.core.settings import DEFAULT_MSSQL_SCHEMA
 from lib.core.settings import DEV_EMAIL_ADDRESS
+from lib.core.settings import DOLLAR_MARKER
 from lib.core.settings import DUMMY_USER_INJECTION
 from lib.core.settings import DYNAMICITY_BOUNDARY_LENGTH
 from lib.core.settings import ERROR_PARSING_REGEXES
@@ -1346,7 +1348,7 @@ def banner():
     if not any(_ in sys.argv for _ in ("--version", "--api")) and not conf.get("disableBanner"):
         result = BANNER
 
-        if not IS_TTY or "--disable-coloring" in sys.argv:
+        if not IS_TTY or any(_ in sys.argv for _ in ("--disable-coloring", "--disable-colouring")):
             result = clearColors(result)
         elif IS_WIN:
             coloramainit()
@@ -2865,6 +2867,8 @@ def urlencode(value, safe="%&=-_", convall=False, limit=False, spaceplus=False):
     result = None if value is None else ""
 
     if value:
+        value = re.sub(r"\b[$\w]+=", lambda match: match.group(0).replace('$', DOLLAR_MARKER), value)
+
         if Backend.isDbms(DBMS.MSSQL) and not kb.tamperFunctions and any(ord(_) > 255 for _ in value):
             warnMsg = "if you experience problems with "
             warnMsg += "non-ASCII identifier names "
@@ -2898,6 +2902,8 @@ def urlencode(value, safe="%&=-_", convall=False, limit=False, spaceplus=False):
 
         if spaceplus:
             result = result.replace(_urllib.parse.quote(' '), '+')
+
+        result = result.replace(DOLLAR_MARKER, '$')
 
     return result
 
@@ -3275,7 +3281,7 @@ def parseSqliteTableSchema(value):
     Parses table column names and types from specified SQLite table schema
 
     >>> kb.data.cachedColumns = {}
-    >>> parseSqliteTableSchema("CREATE TABLE users\\n\\t\\tid INTEGER\\n\\t\\tname TEXT\\n);")
+    >>> parseSqliteTableSchema("CREATE TABLE users(\\n\\t\\tid INTEGER,\\n\\t\\tname TEXT\\n);")
     True
     >>> repr(kb.data.cachedColumns).count(',') == 1
     True
@@ -3386,7 +3392,7 @@ def setOptimize():
 
     # conf.predictOutput = True
     conf.keepAlive = True
-    conf.threads = 3 if conf.threads < 3 else conf.threads
+    conf.threads = 3 if conf.threads < 3 and cmdLineOptions.threads is None else conf.threads
     conf.nullConnection = not any((conf.data, conf.textOnly, conf.titles, conf.string, conf.notString, conf.regexp, conf.tor))
 
     if not conf.nullConnection:
@@ -4123,24 +4129,25 @@ def safeSQLIdentificatorNaming(name, isTable=False):
 
         # Note: SQL 92 has restrictions for identifiers starting with underscore (e.g. http://www.frontbase.com/documentation/FBUsers_4.pdf)
         if retVal.upper() in kb.keywords or (not isTable and (retVal or " ")[0] == '_') or (retVal or " ")[0].isdigit() or not re.match(r"\A[A-Za-z0-9_@%s\$]+\Z" % ('.' if _ else ""), retVal):  # MsSQL is the only DBMS where we automatically prepend schema to table name (dot is normal)
-            retVal = unsafeSQLIdentificatorNaming(retVal)
+            if not conf.noEscape:
+                retVal = unsafeSQLIdentificatorNaming(retVal)
 
-            if Backend.getIdentifiedDbms() in (DBMS.MYSQL, DBMS.ACCESS, DBMS.CUBRID, DBMS.SQLITE):  # Note: in SQLite double-quotes are treated as string if column/identifier is non-existent (e.g. SELECT "foobar" FROM users)
-                retVal = "`%s`" % retVal
-            elif Backend.getIdentifiedDbms() in (DBMS.PGSQL, DBMS.DB2, DBMS.HSQLDB, DBMS.H2, DBMS.INFORMIX, DBMS.MONETDB, DBMS.VERTICA, DBMS.MCKOI, DBMS.PRESTO, DBMS.CRATEDB, DBMS.CACHE, DBMS.EXTREMEDB, DBMS.FRONTBASE):
-                retVal = "\"%s\"" % retVal
-            elif Backend.getIdentifiedDbms() in (DBMS.ORACLE, DBMS.ALTIBASE, DBMS.MIMERSQL):
-                retVal = "\"%s\"" % retVal.upper()
-            elif Backend.getIdentifiedDbms() in (DBMS.MSSQL, DBMS.SYBASE):
-                if isTable:
-                    parts = retVal.split('.', 1)
-                    for i in xrange(len(parts)):
-                        if parts[i] and (re.search(r"\A\d|[^\w]", parts[i], re.U) or parts[i].upper() in kb.keywords):
-                            parts[i] = "[%s]" % parts[i]
-                    retVal = '.'.join(parts)
-                else:
-                    if re.search(r"\A\d|[^\w]", retVal, re.U) or retVal.upper() in kb.keywords:
-                        retVal = "[%s]" % retVal
+                if Backend.getIdentifiedDbms() in (DBMS.MYSQL, DBMS.ACCESS, DBMS.CUBRID, DBMS.SQLITE):  # Note: in SQLite double-quotes are treated as string if column/identifier is non-existent (e.g. SELECT "foobar" FROM users)
+                    retVal = "`%s`" % retVal
+                elif Backend.getIdentifiedDbms() in (DBMS.PGSQL, DBMS.DB2, DBMS.HSQLDB, DBMS.H2, DBMS.INFORMIX, DBMS.MONETDB, DBMS.VERTICA, DBMS.MCKOI, DBMS.PRESTO, DBMS.CRATEDB, DBMS.CACHE, DBMS.EXTREMEDB, DBMS.FRONTBASE):
+                    retVal = "\"%s\"" % retVal
+                elif Backend.getIdentifiedDbms() in (DBMS.ORACLE, DBMS.ALTIBASE, DBMS.MIMERSQL):
+                    retVal = "\"%s\"" % retVal.upper()
+                elif Backend.getIdentifiedDbms() in (DBMS.MSSQL, DBMS.SYBASE):
+                    if isTable:
+                        parts = retVal.split('.', 1)
+                        for i in xrange(len(parts)):
+                            if parts[i] and (re.search(r"\A\d|[^\w]", parts[i], re.U) or parts[i].upper() in kb.keywords):
+                                parts[i] = "[%s]" % parts[i]
+                        retVal = '.'.join(parts)
+                    else:
+                        if re.search(r"\A\d|[^\w]", retVal, re.U) or retVal.upper() in kb.keywords:
+                            retVal = "[%s]" % retVal
 
         if _ and DEFAULT_MSSQL_SCHEMA not in retVal and '.' not in re.sub(r"\[[^]]+\]", "", retVal):
             retVal = "%s.%s" % (DEFAULT_MSSQL_SCHEMA, retVal)

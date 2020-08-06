@@ -198,7 +198,19 @@ def decodeBase64(value, binary=True, encoding=None):
     True
     >>> decodeBase64("MTIz", binary=False)
     '123'
+    >>> decodeBase64(b"MTIzNA") == b"1234"
+    True
+    >>> decodeBase64("MTIzNA") == b"1234"
+    True
+    >>> decodeBase64("MTIzNA==") == b"1234"
+    True
     """
+
+    padding = b'=' if isinstance(value, bytes) else '='
+
+    # Reference: https://stackoverflow.com/a/49459036
+    if not value.endswith(padding):
+        value += 3 * padding
 
     retVal = base64.b64decode(value)
 
@@ -256,7 +268,10 @@ def getBytes(value, encoding=None, errors="strict", unsafe=True):
             if unsafe:
                 retVal = re.sub(r"%s([0-9a-f]{2})" % SAFE_HEX_MARKER, lambda _: decodeHex(_.group(1)), retVal)
         else:
-            retVal = value.encode(encoding, errors)
+            try:
+                retVal = value.encode(encoding, errors)
+            except UnicodeError:
+                retVal = value.encode(UNICODE_ENCODING, errors="replace")
 
             if unsafe:
                 retVal = re.sub(b"\\\\x([0-9a-f]{2})", lambda _: decodeHex(_.group(1)), retVal)

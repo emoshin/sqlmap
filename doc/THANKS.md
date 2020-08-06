@@ -112,6 +112,9 @@ Alessio Dalla Piazza, <alessio.dallapiazza(at)gmail.com>
 Sherif El-Deeb, <archeldeeb(at)gmail.com>
 * for reporting a minor bug
 
+Thomas Etrillard, <thomas.etrillard(at)synacktiv.com>
+* for contributing the IBM DB2 error-based payloads (RAISE_ERROR)
+
 Stefano Di Paola, <stefano.dipaola(at)wisec.it>
 * for suggesting good features
 
@@ -316,6 +319,9 @@ Michael Majchrowicz, <mmajchrowicz(at)gmail.com>
 
 Vinícius Henrique Marangoni, <vinicius_marangoni1(at)hotmail.com>
 * for contributing a Portuguese translation of README.md
+
+Francesco Marano, <francesco.mrn24(at)gmail.com>
+* for contributing the Microsoft SQL Server/Sybase error-based - Stacking (EXEC) payload
 
 Ahmad Maulana, <matdhule(at)gmail.com>
 * for contributing a tamper script halfversionedmorekeywords.py

@@ -336,6 +336,10 @@ def start():
                         conf.httpHeaders.append((header, value))
                         break
 
+            if conf.data:
+                # Note: explicitly URL encode __ ASP(.NET) parameters (e.g. to avoid problems with Base64 encoded '+' character) - standard procedure in web browsers
+                conf.data = re.sub(r"\b(__\w+)=([^&]+)", lambda match: "%s=%s" % (match.group(1), urlencode(match.group(2), safe='%')), conf.data)
+
             conf.httpHeaders = [conf.httpHeaders[i] for i in xrange(len(conf.httpHeaders)) if conf.httpHeaders[i][0].upper() not in (__[0].upper() for __ in conf.httpHeaders[i + 1:])]
 
             initTargetEnv()
@@ -382,7 +386,7 @@ def start():
                     message += "\nCookie: %s" % conf.cookie
 
                 if conf.data is not None:
-                    message += "\n%s data: %s" % ((conf.method if conf.method != HTTPMETHOD.GET else conf.method) or HTTPMETHOD.POST, urlencode(conf.data or "") if re.search(r"\A\s*[<{]", conf.data or "") is None else conf.data)
+                    message += "\n%s data: %s" % ((conf.method if conf.method != HTTPMETHOD.GET else None) or HTTPMETHOD.POST, urlencode(conf.data or "") if re.search(r"\A\s*[<{]", conf.data or "") is None else conf.data)
 
                 if conf.forms and conf.method:
                     if conf.method == HTTPMETHOD.GET and targetUrl.find("?") == -1:
